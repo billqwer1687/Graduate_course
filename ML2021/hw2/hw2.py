@@ -28,12 +28,6 @@ You should have `timit_11/train_11.npy`, `timit_11/train_label_11.npy`, and `tim
 **notes: if the google drive link is dead, you can download the data directly from Kaggle and upload it to the workspace**
 """
 
-!gdown --id '1Fh8lXaD9fh8-93kqVzajVEj6enqDSQzt' --output data.zip
-!unzip data.zip
-!ls
-
-from google.colab import drive
-drive.mount('/content/drive')
 
 """## Preparing Data
 Load the training and testing data from the `.npy` file (NumPy array).
@@ -129,28 +123,28 @@ import torch.nn as nn
 class Classifier(nn.Module):
     def __init__(self):
         super(Classifier, self).__init__()
-        self.layer1 = nn.Linear(429, 1024)
+        self.layer1 = nn.Linear(429, 400)
         self.dropout1 = nn.Dropout(0.2)
-        self.BN1 = nn.BatchNorm1d(1024)
+        self.BN1 = nn.BatchNorm1d(400)
 
-        self.layer2 = nn.Linear(1024, 512)
+        self.layer2 = nn.Linear(400, 400)
         self.dropout2 = nn.Dropout(0.2)
-        self.BN2 = nn.BatchNorm1d(512)
+        self.BN2 = nn.BatchNorm1d(400)
 
-        self.layer3 = nn.Linear(512, 256)
+        self.layer3 = nn.Linear(400, 400)
         self.dropout3 = nn.Dropout(0.2)
-        self.BN3 = nn.BatchNorm1d(256)
+        self.BN3 = nn.BatchNorm1d(400)
         
-        self.layer4 = nn.Linear(256, 128)
-        self.dropout4 = nn.Dropout(0.2)
+        self.layer4 = nn.Linear(400, 400)
+        self.dropout4 = nn.Dropout(0.1)
         self.BN4 = nn.BatchNorm1d(128)
 
-        self.layer5 = nn.Linear(128, 64)
-        self.dropout5 = nn.Dropout(0.2)
-        self.BN5 = nn.BatchNorm1d(64)
+        self.layer5 = nn.Linear(400, 128)
+        self.dropout5 = nn.Dropout(0.1)
+        self.BN5 = nn.BatchNorm1d(128)
 
-        self.layer6 = nn.Linear(64, 64)
-        self.dropout6 = nn.Dropout(0.2)
+        self.layer6 = nn.Linear(128, 64)
+        self.dropout6 = nn.Dropout(0.1)
         self.BN6 = nn.BatchNorm1d(64)
 
         self.out = nn.Linear(64, 39) 
@@ -221,7 +215,7 @@ print(f'DEVICE: {device}')
 
 # training parameters
 num_epoch = 100               # number of training epoch
-learning_rate = 0.0001       # learning rate
+learning_rate = 0.1       # learning rate
 
 # the path where checkpoint saved
 model_path = './model.ckpt'
@@ -229,7 +223,7 @@ model_path = './model.ckpt'
 # create model, define a loss function, and optimizer
 model = Classifier().to(device)
 criterion = nn.CrossEntropyLoss() 
-optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate,momentum=0.9,weight_decay=0.001)
+optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate,momentum=0.9,weight_decay=0.0001)
 #optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=0.001)
 
 # start training
