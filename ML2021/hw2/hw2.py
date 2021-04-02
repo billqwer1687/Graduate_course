@@ -123,23 +123,23 @@ import torch.nn as nn
 class Classifier(nn.Module):
     def __init__(self):
         super(Classifier, self).__init__()
-        self.layer1 = nn.Linear(429, 400)
+        self.layer1 = nn.Linear(429, 1024)
         self.dropout1 = nn.Dropout(0.2)
-        self.BN1 = nn.BatchNorm1d(400)
+        self.BN1 = nn.BatchNorm1d(1024)
 
-        self.layer2 = nn.Linear(400, 400)
+        self.layer2 = nn.Linear(1024, 512)
         self.dropout2 = nn.Dropout(0.2)
-        self.BN2 = nn.BatchNorm1d(400)
+        self.BN2 = nn.BatchNorm1d(512)
 
-        self.layer3 = nn.Linear(400, 400)
+        self.layer3 = nn.Linear(512, 256)
         self.dropout3 = nn.Dropout(0.2)
-        self.BN3 = nn.BatchNorm1d(400)
+        self.BN3 = nn.BatchNorm1d(256)
         
-        self.layer4 = nn.Linear(400, 400)
+        self.layer4 = nn.Linear(256, 128)
         self.dropout4 = nn.Dropout(0.1)
         self.BN4 = nn.BatchNorm1d(128)
 
-        self.layer5 = nn.Linear(400, 128)
+        self.layer5 = nn.Linear(128, 128)
         self.dropout5 = nn.Dropout(0.1)
         self.BN5 = nn.BatchNorm1d(128)
 
@@ -214,8 +214,8 @@ device = get_device()
 print(f'DEVICE: {device}')
 
 # training parameters
-num_epoch = 100               # number of training epoch
-learning_rate = 0.1       # learning rate
+num_epoch = 200               # number of training epoch
+learning_rate = 0.0001       # learning rate
 
 # the path where checkpoint saved
 model_path = './model.ckpt'
