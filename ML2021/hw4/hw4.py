@@ -186,27 +186,42 @@ def get_dataloader(data_dir, batch_size, n_workers):
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+from conformer import ConformerBlock
 
 class Classifier(nn.Module):
-  def __init__(self, d_model=80, n_spks=600, dropout=0.1):
+  def __init__(self, d_model=60, n_spks=600, dropout=0.1):
     super().__init__()
     # Project the dimension of features from that of input into d_model.
     self.prenet = nn.Linear(40, d_model)
     # TODO:
     #   Change Transformer to Conformer.
     #   https://arxiv.org/abs/2005.08100
-    self.encoder_layer = nn.TransformerEncoderLayer(
-      d_model=d_model, dim_feedforward=256, nhead=2
+    
+    self.encoder_layer = ConformerBlock(
+        dim = d_model,
+        dim_head = 128,
+        heads = 32,
+        ff_mult = 4,
+        conv_expansion_factor = 2,
+        conv_kernel_size = 31,
+        attn_dropout = 0.,
+        ff_dropout = 0.,
+        conv_dropout = 0.
     )
+    
+    # self.encoder_layer = nn.TransformerEncoderLayer(
+    # d_model = d_model, dim_feedforward=128, nhead = 1
+    #)
+    
     # self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=2)
 
     # Project the the dimension of features from d_model into speaker nums.
     self.pred_layer = nn.Sequential(
-      nn.Linear(d_model, d_model),
-      nn.ReLU(),
+    
       nn.Linear(d_model, n_spks),
     )
+
+
 
   def forward(self, mels):
     """
@@ -218,18 +233,19 @@ class Classifier(nn.Module):
     # out: (batch size, length, d_model)
     out = self.prenet(mels)
     # out: (length, batch size, d_model)
-    out = out.permute(1, 0, 2)
+    #out = out.permute(1, 0, 2)
     # The encoder layer expect features in the shape of (length, batch size, d_model).
     out = self.encoder_layer(out)
+
     # out: (batch size, length, d_model)
-    out = out.transpose(0, 1)
+    #out = out.transpose(0, 1)
     # mean pooling
     stats = out.mean(dim=1)
 
     # out: (batch, n_spks)
     out = self.pred_layer(stats)
     return out
-
+'''
 """# Learning rate schedule
 - For transformer architecture, the design of learning rate schedule is different from that of CNN.
 - Previous works show that the warmup of learning rate is useful for training models with transformer architectures.
@@ -361,12 +377,12 @@ def parse_args():
   config = {
     "data_dir": "./Dataset",
     "save_path": "model.ckpt",
-    "batch_size": 32,
+    "batch_size": 128,
     "n_workers": 8,
     "valid_steps": 2000,
     "warmup_steps": 1000,
     "save_steps": 10000,
-    "total_steps": 70000,
+    "total_steps": 90000,
   }
 
   return config
@@ -447,9 +463,9 @@ def main(
 
   pbar.close()
 
-
-if __name__ == "__main__":
-  main(**parse_args())
+'''
+#if __name__ == "__main__":
+  #main(**parse_args())
 
 """# Inference
 
@@ -514,7 +530,8 @@ def main(
   output_path,
 ):
   """Main function."""
-  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+  #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+  device = "cpu"
   print(f"[Info]: Use {device} now!")
 
   mapping_path = Path(data_dir) / "mapping.json"
@@ -545,6 +562,7 @@ def main(
       preds = outs.argmax(1).cpu().numpy()
       for feat_path, pred in zip(feat_paths, preds):
         results.append([feat_path, mapping["id2speaker"][str(pred)]])
+        
   
   with open(output_path, 'w', newline='') as csvfile:
     writer = csv.writer(csvfile)
@@ -553,3 +571,14 @@ def main(
 
 if __name__ == "__main__":
   main(**parse_args())
+
+'''
+@misc{gulati2020conformer,
+    title={Conformer: Convolution-augmented Transformer for Speech Recognition},
+    author={Anmol Gulati and James Qin and Chung-Cheng Chiu and Niki Parmar and Yu Zhang and Jiahui Yu and Wei Han and Shibo Wang and Zhengdong Zhang and Yonghui Wu and Ruoming Pang},
+    year={2020},
+    eprint={2005.08100},
+    archivePrefix={arXiv},
+    primaryClass={eess.AS}
+}
+'''
