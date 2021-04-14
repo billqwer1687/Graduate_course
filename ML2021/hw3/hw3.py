@@ -84,8 +84,8 @@ class pseudoDataset(Dataset):
         self.data = X
         self.label = y
          
-    def __getitem__(self):
-        return self.data, self.label
+    def __getitem__(self,idx):
+        return self.data[idx], self.label[idx]
 
     def __len__(self):
         return len(self.data)
@@ -211,7 +211,7 @@ For more details about semi-supervised learning, please refer to [Prof. Lee's sl
 Again, please notice that utilizing external data (or pre-trained model) for training is **prohibited**.
 """
 
-def get_pseudo_labels(dataset, model, threshold=0.65):
+def get_pseudo_labels(dataset, model, threshold=0.8):
     # This functions generates pseudo-labels of a dataset using given model.
     # It returns an instance of DatasetFolder containing images whose prediction confidences exceed a given threshold.
     # You are NOT allowed to use any models trained on external data for pseudo-labeling.
@@ -227,9 +227,10 @@ def get_pseudo_labels(dataset, model, threshold=0.65):
 
     # Iterate over the dataset by batches.
     first_batch = True
+    img_s = []
+    labels = []
     for batch in tqdm(data_loader):
         img, _ = batch
-
         # Forward the data
         # Using torch.no_grad() accelerates the forward process.
         with torch.no_grad():
@@ -242,17 +243,19 @@ def get_pseudo_labels(dataset, model, threshold=0.65):
         # Filter the data and construct a new dataset
         
         
+        
         for i in range(probs.size()[0]):
             for j in range(11):
                 if(probs[i][j] > threshold):
-                    dataset = ConcatDataset([dataset, pseudoDataset(img[i], probs[i][j])])
-                else:
-                    dataset = pseudo
+                    img_s.append(img[i])
+                    labels.append(j)
+    pseudo_set = pseudoDataset(img_s, labels)
+                    
         
                 
     # # Turn off the eval mode.
     model.train()
-    return dataset
+    return pseudo_set
 
 # "cuda" only when GPUs are available.
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -277,10 +280,9 @@ for epoch in range(n_epochs):
     # ---------- TODO ----------
     # In each epoch, relabel the unlabeled dataset for semi-supervised learning.
     # Then you can combine the labeled dataset and pseudo-labeled dataset for the training.
-    if do_semi:
+    if do_semi and epoch > 20:
         # Obtain pseudo-labels for unlabeled data using trained model.
         pseudo_set = get_pseudo_labels(unlabeled_set, model)
-        print(pseudo_set)
         # Construct a new dataset and a data loader for training.
         # This is used in semi-supervised learning only.
         concat_dataset = ConcatDataset([train_set, pseudo_set])
