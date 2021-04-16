@@ -63,7 +63,7 @@ import random
 from pathlib import Path
 from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pad_sequence
- 
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
  
 class myDataset(Dataset):
   def __init__(self, data_dir, segment_len=128):
@@ -189,14 +189,10 @@ import torch.nn.functional as F
 from conformer import ConformerBlock
 
 class Classifier(nn.Module):
-  def __init__(self, d_model=60, n_spks=600, dropout=0.1):
+  def __init__(self, d_model=128, n_spks=600, dropout=0.1):
     super().__init__()
     # Project the dimension of features from that of input into d_model.
     self.prenet = nn.Linear(40, d_model)
-    # TODO:
-    #   Change Transformer to Conformer.
-    #   https://arxiv.org/abs/2005.08100
-    
     self.encoder_layer = ConformerBlock(
         dim = d_model,
         dim_head = 128,
@@ -208,12 +204,6 @@ class Classifier(nn.Module):
         ff_dropout = 0.,
         conv_dropout = 0.
     )
-    
-    # self.encoder_layer = nn.TransformerEncoderLayer(
-    # d_model = d_model, dim_feedforward=128, nhead = 1
-    #)
-    
-    # self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=2)
 
     # Project the the dimension of features from d_model into speaker nums.
     self.pred_layer = nn.Sequential(
@@ -245,7 +235,7 @@ class Classifier(nn.Module):
     # out: (batch, n_spks)
     out = self.pred_layer(stats)
     return out
-'''
+
 """# Learning rate schedule
 - For transformer architecture, the design of learning rate schedule is different from that of CNN.
 - Previous works show that the warmup of learning rate is useful for training models with transformer architectures.
@@ -463,9 +453,9 @@ def main(
 
   pbar.close()
 
-'''
-#if __name__ == "__main__":
-  #main(**parse_args())
+
+if __name__ == "__main__":
+  main(**parse_args())
 
 """# Inference
 
@@ -530,8 +520,8 @@ def main(
   output_path,
 ):
   """Main function."""
-  #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  device = "cpu"
+  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+  #device = "cpu"
   print(f"[Info]: Use {device} now!")
 
   mapping_path = Path(data_dir) / "mapping.json"
@@ -543,7 +533,7 @@ def main(
     batch_size=1,
     shuffle=False,
     drop_last=False,
-    num_workers=8,
+    num_workers=4,
     collate_fn=inference_collate_batch,
   )
   print(f"[Info]: Finish loading data!",flush = True)
@@ -555,13 +545,20 @@ def main(
   print(f"[Info]: Finish creating model!",flush = True)
 
   results = [["Id", "Category"]]
+  i = 0
   for feat_paths, mels in tqdm(dataloader):
     with torch.no_grad():
+      if mels.size()[1] > 3000:
+        mels = mels[:,0:3000,:]
+      #print(mels.size())
       mels = mels.to(device)
       outs = model(mels)
       preds = outs.argmax(1).cpu().numpy()
       for feat_path, pred in zip(feat_paths, preds):
         results.append([feat_path, mapping["id2speaker"][str(pred)]])
+      torch.cuda.empty_cache()
+    i = i + 1
+    print('%.2f%%'%(100 * i / 6000), end='\r')
         
   
   with open(output_path, 'w', newline='') as csvfile:
